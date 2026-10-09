@@ -1,0 +1,8 @@
+pandas
+requests
+python-dotenv
+pyarrow
+matplotlib
+jupyter
+pytest
+ruff
