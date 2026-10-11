@@ -27,6 +27,11 @@ def clean_one(s: pd.Series) -> pd.DataFrame:
         ["missing", "non_positive", "spike", "collapse"],
         default="",
     )
+    # Bad readings come in clusters, and the edge hours of a cluster often slip past the ratio test.
+    # Also flag any hour directly before or after a flagged hour.
+    core_bad = pd.Series(reason != "", index=s.index)
+    neighbor = (core_bad.shift(1, fill_value=False) | core_bad.shift(-1, fill_value=False)) & ~core_bad
+    reason = np.where(neighbor, "neighbor", reason)
     bad = pd.Series(reason != "", index=s.index)
 
     # Length of each consecutive run of bad hours, so we repair short runs only.
