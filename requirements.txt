@@ -6,3 +6,4 @@ matplotlib
 jupyter
 pytest
 ruff
+holidays
