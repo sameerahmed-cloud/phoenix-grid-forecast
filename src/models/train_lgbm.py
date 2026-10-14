@@ -81,6 +81,9 @@ def main() -> None:
     common = common.dropna(subset=MODELS).copy()
     common["year"] = common["period"].dt.tz_convert(LOCAL_TZ).dt.year
     common["ym"] = common["period"].dt.tz_convert(LOCAL_TZ).dt.strftime("%Y-%m")
+    
+    REPORT_DIR.mkdir(exist_ok=True)
+    common.to_parquet(REPORT_DIR / "predictions.parquet", index=False)  # lets analysis scripts reuse the hourly results
 
     table = summarize(common)
     print(table.round(2).to_string(index=False), "\n")
