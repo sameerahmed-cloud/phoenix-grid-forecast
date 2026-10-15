@@ -39,7 +39,7 @@ def build_live_features(utility: str, raw_demand: pd.DataFrame, weather: pd.Data
     """Return (feature rows for the next 24 hours, timestamp of the newest actual hour)."""
     s = raw_demand[raw_demand["respondent"] == utility].set_index("period")["value"].sort_index()
     clean = clean_one(s)          # the same cleaning the training data got
-    last = clean.index.max()      # newest hour EIA has published
+    last = clean.index[clean["usable"]].max()      # newest hour with a trustworthy value
 
     # Extend the hourly grid 24 hours past the last actual. Those future demand values stay blank;
     # the lag clues for them point back to hours that DO exist.

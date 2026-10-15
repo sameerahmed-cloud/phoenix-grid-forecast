@@ -51,7 +51,7 @@ def clean_one(s: pd.Series) -> pd.DataFrame:
         {
             "demand_mw": final,
             "flag_reason": reason,
-            "was_repaired": repairable,
+            "was_repaired": repairable & final.notna(),
             "usable": final.notna(),
         }
     )
