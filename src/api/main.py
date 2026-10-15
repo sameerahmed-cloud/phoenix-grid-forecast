@@ -29,10 +29,13 @@ async def lifespan(app: FastAPI):
     """Runs once at startup: load models and the feature table into memory."""
     state["models"] = {r: joblib.load(MODEL_DIR / f"{r}.joblib") for r in ["AZPS", "SRP"]}
     state["info"] = json.loads((MODEL_DIR / "model_info.json").read_text())
-    feats = pd.read_parquet(FEATURES_PATH)
-    feats["local_date"] = feats["period"].dt.tz_convert(LOCAL_TZ).dt.date
-    feats["local_hour"] = feats["period"].dt.tz_convert(LOCAL_TZ).dt.hour
-    state["features"] = feats
+    if FEATURES_PATH.exists():  # only the historical replay endpoint needs this
+        feats = pd.read_parquet(FEATURES_PATH)
+        feats["local_date"] = feats["period"].dt.tz_convert(LOCAL_TZ).dt.date
+        feats["local_hour"] = feats["period"].dt.tz_convert(LOCAL_TZ).dt.hour
+        state["features"] = feats
+    else:
+        state["features"] = None
     yield
 
 
@@ -66,6 +69,8 @@ def model_info():
 @app.get("/predict", response_model=ForecastResponse)
 def predict(utility: Literal["AZPS", "SRP"], day: date):
     f = state["features"]
+    if f is None:
+        raise HTTPException(status_code=503, detail="Replay data is not available in this deployment")
     rows = f[(f["respondent"] == utility) & (f["local_date"] == day)].sort_values("period")
     if rows.empty:
         raise HTTPException(status_code=404, detail=f"No feature data for {utility} on {day}")

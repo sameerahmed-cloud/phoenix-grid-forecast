@@ -75,3 +75,8 @@ def test_weather_gap_returns_503(wired, monkeypatch):
         raise ValueError("Weather forecast does not cover the forecast window")
     monkeypatch.setattr(main, "build_live_features", gap)
     assert client.get("/forecast", params={"utility": "AZPS"}).status_code == 503
+
+def test_replay_unavailable_without_feature_table(monkeypatch):
+    monkeypatch.setitem(main.state, "features", None)
+    r = client.get("/predict", params={"utility": "AZPS", "day": "2026-08-15"})
+    assert r.status_code == 503

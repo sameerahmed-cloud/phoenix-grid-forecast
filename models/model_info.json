@@ -1,0 +1,31 @@
+{
+  "AZPS": {
+    "trained_through_utc": "2026-10-08 00:00:00+00:00",
+    "training_rows": 41569,
+    "target": "demand_mw (level)"
+  },
+  "SRP": {
+    "trained_through_utc": "2026-10-08 00:00:00+00:00",
+    "training_rows": 41343,
+    "target": "demand_mw (level)"
+  },
+  "features": [
+    "lag_24",
+    "lag_48",
+    "lag_168",
+    "roll_mean_24",
+    "roll_mean_168",
+    "temperature_2m",
+    "relative_humidity_2m",
+    "shortwave_radiation",
+    "cloud_cover",
+    "wind_speed_10m",
+    "cdh",
+    "temp_roll_72h",
+    "hour",
+    "dayofweek",
+    "month",
+    "is_weekend",
+    "is_holiday"
+  ]
+}

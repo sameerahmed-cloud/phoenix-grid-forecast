@@ -1,0 +1,13 @@
+fastapi==0.143.0
+holidays==0.106
+joblib==1.6.0
+lightgbm==4.7.0
+numpy==2.2.6
+pandas==2.3.3
+pydantic==2.14.1
+pydantic_core==2.50.1
+python-dotenv==1.2.4
+requests==2.34.2
+scikit-learn==1.7.2
+urllib3==2.8.0
+uvicorn==0.54.0
