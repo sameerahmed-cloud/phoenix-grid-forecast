@@ -2,19 +2,22 @@
 
 import json
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Literal
-from datetime import datetime, timezone
 
 import joblib
 import pandas as pd
+import requests
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import requests
 
 from src.features.build import FEATURES, LOCAL_TZ
-from src.features.live import build_live_features, fetch_recent_demand, fetch_weather_forecast
+from src.features.live import (
+    build_live_features,
+    fetch_recent_demand,
+    fetch_weather_forecast,
+)
 
 MODEL_DIR = Path("models")
 FEATURES_PATH = Path("data/processed/features.parquet")

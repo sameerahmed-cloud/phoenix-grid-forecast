@@ -4,9 +4,14 @@ from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 
-from src.features.build import (WEATHER_COLS, add_calendar_features,
-                                add_demand_lags, add_weather_features)
-from src.ingest.eia import build_session, clean as clean_eia, fetch_all
+from src.features.build import (
+    WEATHER_COLS,
+    add_calendar_features,
+    add_demand_lags,
+    add_weather_features,
+)
+from src.ingest.eia import build_session, fetch_all
+from src.ingest.eia import clean as clean_eia
 from src.ingest.weather import HOURLY_VARS, LATITUDE, LONGITUDE
 from src.processing.clean_demand import clean_one
 

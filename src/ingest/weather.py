@@ -5,7 +5,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.ingest.eia import build_session  # reuse the retrying session instead of rewriting it
+from src.ingest.eia import (
+    build_session,  # reuse the retrying session instead of rewriting it
+)
 
 BASE_URL = "https://archive-api.open-meteo.com/v1/archive"
 RAW_DIR = Path("data/raw")

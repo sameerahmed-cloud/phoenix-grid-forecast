@@ -16,9 +16,17 @@ MODES = ["level", "relative"]
 MODELS = ["naive_24h", "utility_df", "lgbm_level", "lgbm_relative"]
 
 # Fixed settings on purpose: tuning them against the test blocks would leak the answer.
-PARAMS = dict(n_estimators=400, learning_rate=0.05, num_leaves=31, min_child_samples=50,
-              subsample=0.8, subsample_freq=1, colsample_bytree=0.8,
-              random_state=42, verbose=-1)
+PARAMS = {
+    "n_estimators": 400, 
+    "learning_rate=": 0.05, 
+    "num_leaves": 31, 
+    "min_child_samples": 50,
+    "subsample": 0.8, 
+    "subsample_freq": 1, 
+    "colsample_bytree": 0.8,
+    "random_state": 42, 
+    "verbose": -1,
+}
 
 
 def fold_edges(g: pd.DataFrame) -> list[tuple[pd.Timestamp, pd.Timestamp]]:

@@ -8,7 +8,9 @@ import lightgbm as lgb
 import pandas as pd
 
 from src.features.build import FEATURES
-from src.models.train_lgbm import PARAMS  # same settings as the backtest, so nothing differs
+from src.models.train_lgbm import (
+    PARAMS,  # same settings as the backtest, so nothing differs
+)
 
 FEATURES_PATH = Path("data/processed/features.parquet")
 MODEL_DIR = Path("models")
