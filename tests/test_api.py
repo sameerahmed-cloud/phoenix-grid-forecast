@@ -27,6 +27,7 @@ def fake_rows():
 @pytest.fixture
 def wired(monkeypatch, tmp_path):
     """Swap the model, the live data, and the log file for fakes."""
+    monkeypatch.delenv("DATABASE_URL", raising=False)  # tests must never touch the real database
     info = {u: {"trained_through_utc": "2026-10-08 00:00:00+00:00"} for u in ["AZPS", "SRP"]}
     monkeypatch.setitem(main.state, "models", {"AZPS": FakeModel(), "SRP": FakeModel()})
     monkeypatch.setitem(main.state, "info", info)

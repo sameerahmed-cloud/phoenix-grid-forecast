@@ -12,6 +12,7 @@ import requests
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+from src.api.store import COLUMNS, save_forecasts
 from src.features.build import FEATURES, LOCAL_TZ
 from src.features.live import (
     build_live_features,
@@ -110,15 +111,15 @@ def get_live_inputs() -> dict:
 
 
 def log_predictions(utility, made_at, rows, preds) -> None:
-    """Save every forecast, so tomorrow we can compare it with what actually happened."""
-    LOG_PATH.parent.mkdir(exist_ok=True)
+    """Save every forecast, so we can later compare it with what actually happened."""
     out = pd.DataFrame({
-        "made_at_utc": made_at.isoformat(), "utility": utility,
-        "period_utc": rows["period"].astype(str).values,
+        "period_utc": rows["period"].reset_index(drop=True),
         "predicted_mw": preds.round(1),
-        "model_trained_through_utc": state["info"][utility]["trained_through_utc"],
     })
-    out.to_csv(LOG_PATH, mode="a", header=not LOG_PATH.exists(), index=False)
+    out["made_at_utc"] = pd.Timestamp(made_at)
+    out["utility"] = utility
+    out["model_trained_through_utc"] = pd.Timestamp(state["info"][utility]["trained_through_utc"])
+    save_forecasts(out[COLUMNS], LOG_PATH)
 
 
 @app.get("/forecast", response_model=LiveForecastResponse)
