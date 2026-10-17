@@ -1,0 +1,5 @@
+# Builds on top of the normal app image and adds the Lambda-only translator.
+FROM public.ecr.aws/awsguru/aws-lambda-adapter:1.0.0 AS lwa
+FROM phoenix-grid-forecast:latest
+COPY --from=lwa /lambda-adapter /opt/extensions/lambda-adapter
+ENV AWS_LWA_PORT=8000 AWS_LWA_READINESS_CHECK_PATH=/health
