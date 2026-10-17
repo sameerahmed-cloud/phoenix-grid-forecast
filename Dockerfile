@@ -15,6 +15,10 @@ COPY models ./models
 
 ENV PYTHONUNBUFFERED=1
 
+# Lambda Web Adapter: lets this same image run on AWS Lambda, and is not used elsewhere
+COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:1.0.0 /lambda-adapter /opt/extensions/lambda-adapter
+ENV AWS_LWA_PORT=8000 AWS_LWA_READINESS_CHECK_PATH=/health
+
 # Don't run as root inside the container
 RUN useradd -m appuser && chown -R appuser /app
 USER appuser

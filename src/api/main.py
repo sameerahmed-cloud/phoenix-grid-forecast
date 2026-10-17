@@ -1,6 +1,7 @@
 """FastAPI service: request a day and a utility, get 24 hourly demand forecasts."""
 
 import json
+import os
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -24,7 +25,7 @@ MODEL_DIR = Path("models")
 FEATURES_PATH = Path("data/processed/features.parquet")
 state: dict = {}
 
-LOG_PATH = Path("logs/forecast_log.csv")
+LOG_PATH = Path(os.getenv("LOG_PATH", "logs/forecast_log.csv"))
 CACHE_MINUTES = 30
 
 
