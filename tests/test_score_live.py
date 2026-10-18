@@ -1,7 +1,12 @@
 import numpy as np
 import pandas as pd
 
-from src.models.score_live import attach_actuals, prepare_forecasts, summarize
+from src.models.score_live import (
+    attach_actuals,
+    prepare_forecasts,
+    score_all,
+    summarize,
+)
 
 FAR_FUTURE = pd.Timestamp("2027-01-01", tz="UTC")  # "now" far enough ahead that nothing is too fresh
 
@@ -115,3 +120,25 @@ def test_under_1h_hours_stay_out_of_the_headline():
     table = summarize(scored)
     assert table.loc[table["slice"] == "headline_1h_plus", "hours"].iloc[0] == 1
     assert table.loc[table["slice"] == "under_1h", "hours"].iloc[0] == 1
+
+
+def test_score_all_chains_the_rules_and_reports_every_drop():
+    f = pd.concat([log("2026-10-16 02:00", "2026-10-16 22:00", [5000.0]),
+                   log("2026-10-16 02:30", "2026-10-16 22:00", [5050.0]),   # duplicate window
+                   log("2026-10-16 02:00", "2026-10-16 23:00", [np.nan])])  # broken prediction
+    actuals = pd.DataFrame({"utility": "AZPS",
+                            "period_utc": pd.to_datetime(["2026-10-15 22:00", "2026-10-16 22:00"], utc=True),
+                            "demand_mw": [5100.0, 5400.0], "usable": True})
+    scored, funnel, table = score_all(f, actuals, FAR_FUTURE)
+    assert funnel == {"logged": 3, "broken_prediction": 1, "after_dedup": 1, "mature": 1,
+                      "no_usable_actual": 0, "no_usable_baseline": 0, "scored": 1}
+    assert len(scored) == 1 and len(table) == 2  # the headline row plus the 12h_plus row
+
+
+def test_nothing_mature_yet_returns_empty_results_without_crashing():
+    f = log("2026-10-16 02:00", "2026-10-16 22:00", 5000.0)
+    actuals = actuals_series("2026-10-15 00:00", 72)
+    now = pd.Timestamp("2026-10-16 23:00", tz="UTC")  # the hour is only 1 hour old
+    scored, funnel, table = score_all(f, actuals, now)
+    assert funnel["mature"] == 0 and funnel["scored"] == 0
+    assert scored.empty and table.empty

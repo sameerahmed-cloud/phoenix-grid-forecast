@@ -94,3 +94,10 @@ def summarize(scored: pd.DataFrame) -> pd.DataFrame:
             if len(g):
                 rows.append(_row(g, utility, b))
     return pd.DataFrame(rows)
+
+
+def score_all(log: pd.DataFrame, actuals: pd.DataFrame, now: pd.Timestamp):
+    """Run every rule in order. Returns (scored rows, funnel counts, summary table)."""
+    kept, funnel_forecasts = prepare_forecasts(log, now)
+    scored, funnel_actuals = attach_actuals(kept, actuals)
+    return scored, {**funnel_forecasts, **funnel_actuals}, summarize(scored)
