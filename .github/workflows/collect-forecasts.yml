@@ -13,7 +13,7 @@
            run: |
             status=0
             for u in AZPS SRP; do
-              curl --silent --show-error --fail-with-body --max-time 120 --retry 2 \
+              curl --silent --show-error --fail-with-body --max-time 150 --retry 3 --retry-delay 30 \
                 "${{ secrets.FORECAST_URL }}/forecast?utility=$u" -o "response_$u.json" \
                 || { echo "FAILED for $u:"; cat "response_$u.json"; echo; status=1; }
             done
