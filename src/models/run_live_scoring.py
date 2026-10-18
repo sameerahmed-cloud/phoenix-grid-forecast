@@ -1,10 +1,12 @@
 """Score the live forecast log against what EIA later published.
 
-Run from the project folder:  python -m src.models.run_live_scoring
+Run from the project folder:  python -m src.models.run_live_scoring [--save]
 Needs DATABASE_URL and EIA_API_KEY in .env (or in the environment).
+With --save, the graded rows are also written to the forecast_scores table in Neon.
 The grading rules live in score_live.py; this file only fetches the inputs and prints the report.
 """
 
+import argparse
 import os
 
 import pandas as pd
@@ -13,13 +15,39 @@ from dotenv import load_dotenv
 
 from src.ingest.eia import clean as clean_eia
 from src.ingest.eia import fetch_all
-from src.models.score_live import MATURITY_HOURS, score_all
+from src.models.score_live import MATURITY_HOURS, score_all, to_score_records
 from src.processing.clean_demand import clean_one
 
 HOUR_FMT = "%Y-%m-%dT%H"
 PAD_DAYS = 3  # extra history before the first target hour: copy-yesterday and cleaning need context
 LOG_SQL = ("SELECT made_at_utc, utility, period_utc, predicted_mw, model_trained_through_utc "
            "FROM forecast_log")
+
+CREATE_SCORES = """
+CREATE TABLE IF NOT EXISTS forecast_scores (
+    made_at_utc               TIMESTAMPTZ      NOT NULL,
+    utility                   TEXT             NOT NULL,
+    period_utc                TIMESTAMPTZ      NOT NULL,
+    model_trained_through_utc TIMESTAMPTZ      NOT NULL,
+    lead_h                    DOUBLE PRECISION NOT NULL,
+    bucket                    TEXT             NOT NULL,
+    predicted_mw              DOUBLE PRECISION NOT NULL,
+    actual_mw                 DOUBLE PRECISION NOT NULL,
+    naive_24h                 DOUBLE PRECISION NOT NULL,
+    scored_at_utc             TIMESTAMPTZ      NOT NULL DEFAULT now(),
+    PRIMARY KEY (made_at_utc, utility, period_utc)
+)
+"""
+
+# Rerunning is safe: a row that already exists is refreshed (EIA may have revised the actual), not duplicated.
+UPSERT_SCORE = """
+INSERT INTO forecast_scores (made_at_utc, utility, period_utc, model_trained_through_utc,
+                             lead_h, bucket, predicted_mw, actual_mw, naive_24h)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+ON CONFLICT (made_at_utc, utility, period_utc) DO UPDATE SET
+    lead_h = EXCLUDED.lead_h, bucket = EXCLUDED.bucket, predicted_mw = EXCLUDED.predicted_mw,
+    actual_mw = EXCLUDED.actual_mw, naive_24h = EXCLUDED.naive_24h, scored_at_utc = now()
+"""
 
 
 def load_log(url: str) -> pd.DataFrame:
@@ -43,7 +71,17 @@ def load_actuals(first_target: pd.Timestamp, now: pd.Timestamp) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
-def main() -> None:
+def save_scores(url: str, scored: pd.DataFrame) -> int:
+    """Write the graded rows to Neon, creating the table the first time. Returns how many were sent."""
+    records = to_score_records(scored)
+    with psycopg.connect(url, connect_timeout=10) as conn:  # commits automatically on success
+        conn.execute(CREATE_SCORES)
+        with conn.cursor() as cur:
+            cur.executemany(UPSERT_SCORE, records)
+    return len(records)
+
+
+def main(save: bool = False) -> None:
     load_dotenv()
     url = os.getenv("DATABASE_URL")
     if not url:
@@ -60,7 +98,7 @@ def main() -> None:
         return
 
     actuals = load_actuals(mature.min(), now)
-    _scored, funnel, table = score_all(log, actuals, now)
+    scored, funnel, table = score_all(log, actuals, now)
 
     print("\nWhat happened to the rows (each step can only remove rows):")
     for step, count in funnel.items():
@@ -71,6 +109,12 @@ def main() -> None:
     print("\nScoreboard (lower is better; 'naive' = copy yesterday):")
     print(table.round(2).to_string(index=False))
 
+    if save:
+        print(f"\nSaved {save_scores(url, scored)} graded rows to forecast_scores.")
+
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Score logged forecasts against actual demand.")
+    parser.add_argument("--save", action="store_true",
+                        help="also write the graded rows to the forecast_scores table in Neon")
+    main(save=parser.parse_args().save)

@@ -101,3 +101,17 @@ def score_all(log: pd.DataFrame, actuals: pd.DataFrame, now: pd.Timestamp):
     kept, funnel_forecasts = prepare_forecasts(log, now)
     scored, funnel_actuals = attach_actuals(kept, actuals)
     return scored, {**funnel_forecasts, **funnel_actuals}, summarize(scored)
+
+
+def to_score_records(scored: pd.DataFrame) -> list:
+    """Shape graded rows for the database: plain Python values in the table's column order."""
+    s = scored.copy()
+    for col in ["made_at_utc", "period_utc", "model_trained_through_utc"]:
+        s[col] = pd.to_datetime(s[col], utc=True)
+    s["bucket"] = s["bucket"].astype(str)
+    return [
+        (r.made_at_utc.to_pydatetime(), r.utility, r.period_utc.to_pydatetime(),
+         r.model_trained_through_utc.to_pydatetime(), float(r.lead_h), r.bucket,
+         float(r.predicted_mw), float(r.actual_mw), float(r.naive_24h))
+        for r in s.itertuples(index=False)
+    ]

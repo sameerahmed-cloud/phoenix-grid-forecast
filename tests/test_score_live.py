@@ -6,6 +6,7 @@ from src.models.score_live import (
     prepare_forecasts,
     score_all,
     summarize,
+    to_score_records,
 )
 
 FAR_FUTURE = pd.Timestamp("2027-01-01", tz="UTC")  # "now" far enough ahead that nothing is too fresh
@@ -142,3 +143,19 @@ def test_nothing_mature_yet_returns_empty_results_without_crashing():
     scored, funnel, table = score_all(f, actuals, now)
     assert funnel["mature"] == 0 and funnel["scored"] == 0
     assert scored.empty and table.empty
+
+
+def test_score_records_are_plain_python_values_in_table_order():
+    f = log("2026-10-16 02:00", "2026-10-16 22:00", 5000.0)
+    f["model_trained_through_utc"] = "2026-10-08 00:00"
+    actuals = pd.DataFrame({"utility": "AZPS",
+                            "period_utc": pd.to_datetime(["2026-10-15 22:00", "2026-10-16 22:00"], utc=True),
+                            "demand_mw": [5100.0, 5400.0], "usable": True})
+    scored, _, _ = score_all(f, actuals, FAR_FUTURE)
+    records = to_score_records(scored)
+    assert len(records) == 1 and len(records[0]) == 9
+    made_at, utility, period, trained, lead_h, bucket, predicted, actual, naive = records[0]
+    assert made_at.tzinfo is not None and period.tzinfo is not None and trained.tzinfo is not None
+    assert (utility, bucket, lead_h) == ("AZPS", "12h_plus", 20.0)
+    assert (predicted, actual, naive) == (5000.0, 5400.0, 5100.0)
+    assert all(type(v) is float for v in (lead_h, predicted, actual, naive))  # not numpy floats
