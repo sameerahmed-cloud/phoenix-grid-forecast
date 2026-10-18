@@ -20,6 +20,11 @@ from src.features.live import (
     fetch_recent_demand,
     fetch_weather_forecast,
 )
+from src.features.validate_live import (
+    DataValidationError,
+    check_fresh,
+    validate_live_inputs,
+)
 
 MODEL_DIR = Path("models")
 FEATURES_PATH = Path("data/processed/features.parquet")
@@ -127,9 +132,14 @@ def log_predictions(utility, made_at, rows, preds) -> None:
 def forecast(utility: Literal["AZPS", "SRP"]):
     try:
         live = get_live_inputs()
+        validate_live_inputs(live["demand"], live["weather"], utility)
         rows, last = build_live_features(utility, live["demand"], live["weather"])
+        check_fresh(last, datetime.now(timezone.utc))
     except requests.RequestException as e:
         raise HTTPException(status_code=502, detail=f"Upstream data source failed: {e}")
+    except DataValidationError as e:
+        state.pop("live", None)  # don't keep reusing data that failed its checks
+        raise HTTPException(status_code=503, detail=f"Input data failed a check: {e}")
     except ValueError as e:
         raise HTTPException(status_code=503, detail=str(e))
 

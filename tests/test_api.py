@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from src.api import main
 from src.features.build import FEATURES
+from src.features.validate_live import check_fresh, validate_live_inputs
 
 # Not used as a "with" block on purpose: that would run startup and need real model files.
 client = TestClient(main.app)
@@ -34,6 +35,8 @@ def wired(monkeypatch, tmp_path):
     monkeypatch.setattr(main, "get_live_inputs", lambda: {"demand": None, "weather": None})
     monkeypatch.setattr(main, "build_live_features",
                         lambda u, d, w: (fake_rows(), pd.Timestamp("2026-10-15 00:00", tz="UTC")))
+    monkeypatch.setattr(main, "validate_live_inputs", lambda demand, weather, utility: [])
+    monkeypatch.setattr(main, "check_fresh", lambda last, now: [])
     log = tmp_path / "forecast_log.csv"
     monkeypatch.setattr(main, "LOG_PATH", log)
     return log
@@ -81,3 +84,21 @@ def test_replay_unavailable_without_feature_table(monkeypatch):
     monkeypatch.setitem(main.state, "features", None)
     r = client.get("/predict", params={"utility": "AZPS", "day": "2026-08-15"})
     assert r.status_code == 503
+
+def test_stale_data_returns_503_and_clears_the_cache(wired, monkeypatch):
+    monkeypatch.setattr(main, "check_fresh", check_fresh)  # the real check; the fake newest hour is months old
+    monkeypatch.setitem(main.state, "live", {"at": None})
+    r = client.get("/forecast", params={"utility": "AZPS"})
+    assert r.status_code == 503
+    assert "hours old" in r.json()["detail"]
+    assert "live" not in main.state
+
+
+def test_bad_demand_returns_503_and_nothing_is_logged(wired, monkeypatch):
+    monkeypatch.setattr(main, "validate_live_inputs", validate_live_inputs)  # the real checks
+    empty = pd.DataFrame(columns=["period", "respondent", "type", "value"])
+    monkeypatch.setattr(main, "get_live_inputs", lambda: {"demand": empty, "weather": None})
+    r = client.get("/forecast", params={"utility": "AZPS"})
+    assert r.status_code == 503
+    assert "only 0 hourly demand rows" in r.json()["detail"]
+    assert not wired.exists()  # no forecast was logged

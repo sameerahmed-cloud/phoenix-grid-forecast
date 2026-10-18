@@ -56,3 +56,9 @@ def test_missing_weather_forecast_fails_loudly():
     short_weather = make_weather(hours=N)  # ends exactly where demand ends, so the future has no weather
     with pytest.raises(ValueError):
         build_live_features("AZPS", make_raw(), short_weather)
+
+def test_no_usable_demand_fails_with_a_clear_message():
+    raw = make_raw()
+    raw["value"] = 0.0  # every hour is non-positive, so none is usable
+    with pytest.raises(ValueError, match="usable"):
+        build_live_features("AZPS", raw, make_weather())

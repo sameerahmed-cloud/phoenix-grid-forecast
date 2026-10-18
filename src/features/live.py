@@ -46,6 +46,9 @@ def build_live_features(utility: str, raw_demand: pd.DataFrame, weather: pd.Data
     clean = clean_one(s)          # the same cleaning the training data got
     last = clean.index[clean["usable"]].max()      # newest hour with a trustworthy value
 
+    if pd.isna(last):
+        raise ValueError("No usable demand hours in the latest data")
+
     # Extend the hourly grid 24 hours past the last actual. Those future demand values stay blank;
     # the lag clues for them point back to hours that DO exist.
     grid = pd.date_range(clean.index.min(), last + timedelta(hours=HORIZON), freq="h")
