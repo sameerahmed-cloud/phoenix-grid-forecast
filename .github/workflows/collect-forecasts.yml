@@ -11,7 +11,9 @@
        steps:
          - name: Request a forecast for each utility
            run: |
-             for u in AZPS SRP; do
-               curl --fail --silent --show-error --max-time 120 --retry 2 \
-                 "${{ secrets.FORECAST_URL }}/forecast?utility=$u" -o /dev/null
-             done
+            status=0
+            for u in AZPS SRP; do
+              curl --fail --silent --show-error --max-time 120 --retry 2 \
+                "${{ secrets.FORECAST_URL }}/forecast?utility=$u" -o /dev/null || status=1
+            done
+            exit $status
