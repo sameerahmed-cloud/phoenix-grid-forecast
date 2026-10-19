@@ -1,6 +1,7 @@
 """FastAPI service: request a day and a utility, get 24 hourly demand forecasts."""
 
 import json
+import logging
 import os
 import time
 from contextlib import asynccontextmanager
@@ -26,6 +27,8 @@ from src.features.validate_live import (
     check_fresh,
     validate_live_inputs,
 )
+
+log = logging.getLogger(__name__)
 
 MODEL_DIR = Path("models")
 FEATURES_PATH = Path("data/processed/features.parquet")
@@ -144,10 +147,12 @@ def forecast(utility: Literal["AZPS", "SRP"]):
         rows, last = build_live_features(utility, live["demand"], live["weather"])
         check_fresh(last, datetime.now(timezone.utc))
     except requests.RequestException as e:
-        raise HTTPException(status_code=502, detail=f"Upstream data source failed: {e}")
+           log.warning("Upstream data source failed for %s: %s", utility, e)
+           raise HTTPException(status_code=502, detail=f"Upstream data source failed: {e}")
     except DataValidationError as e:
-        state.pop("live", None)  # don't keep reusing data that failed its checks
-        raise HTTPException(status_code=503, detail=f"Input data failed a check: {e}")
+           log.warning("Input data failed a check for %s: %s", utility, e)
+           state.pop("live", None)  # don't keep reusing data that failed its checks
+           raise HTTPException(status_code=503, detail=f"Input data failed a check: {e}")
     except ValueError as e:
         raise HTTPException(status_code=503, detail=str(e))
 
