@@ -2,6 +2,7 @@
 
 import json
 import os
+import time
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -112,7 +113,13 @@ def get_live_inputs() -> dict:
     cached = state.get("live")
     if cached and (now - cached["at"]).total_seconds() < CACHE_MINUTES * 60:
         return cached
-    state["live"] = {"at": now, "demand": fetch_recent_demand(), "weather": fetch_weather_forecast()}
+    started = time.perf_counter()
+    demand = fetch_recent_demand()
+    eia_done = time.perf_counter()
+    weather = fetch_weather_forecast()
+    print(f"Live fetch took {eia_done - started:.1f}s for EIA and {time.perf_counter() - eia_done:.1f}s "
+            "for weather", flush=True)
+    state["live"] = {"at": now, "demand": demand, "weather": weather}
     return state["live"]
 
 
@@ -130,6 +137,7 @@ def log_predictions(utility, made_at, rows, preds) -> None:
 
 @app.get("/forecast", response_model=LiveForecastResponse)
 def forecast(utility: Literal["AZPS", "SRP"]):
+    print(f"Forecast requested for {utility}", flush=True)
     try:
         live = get_live_inputs()
         validate_live_inputs(live["demand"], live["weather"], utility)
