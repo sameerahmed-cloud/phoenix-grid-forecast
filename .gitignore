@@ -2,6 +2,7 @@
 .env
 
 # environments and caches
+.venv-monitoring/
 .venv/
 __pycache__/
 *.pyc
