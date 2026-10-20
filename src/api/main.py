@@ -1,6 +1,5 @@
 """FastAPI service: request a day and a utility, get 24 hourly demand forecasts."""
 
-import json
 import logging
 import os
 import time
@@ -9,12 +8,12 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Literal
 
-import joblib
 import pandas as pd
 import requests
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+from src.api.model_store import load_models
 from src.api.store import COLUMNS, save_forecasts
 from src.features.build import FEATURES, LOCAL_TZ
 from src.features.live import (
@@ -41,8 +40,7 @@ CACHE_MINUTES = 30
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Runs once at startup: load models and the feature table into memory."""
-    state["models"] = {r: joblib.load(MODEL_DIR / f"{r}.joblib") for r in ["AZPS", "SRP"]}
-    state["info"] = json.loads((MODEL_DIR / "model_info.json").read_text())
+    state["models"], state["info"] = load_models(MODEL_DIR, FEATURES, os.getenv("MODEL_BUCKET"))
     if FEATURES_PATH.exists():  # only the historical replay endpoint needs this
         feats = pd.read_parquet(FEATURES_PATH)
         feats["local_date"] = feats["period"].dt.tz_convert(LOCAL_TZ).dt.date
