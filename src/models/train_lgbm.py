@@ -18,7 +18,7 @@ MODELS = ["naive_24h", "utility_df", "lgbm_level", "lgbm_relative"]
 # Fixed settings on purpose: tuning them against the test blocks would leak the answer.
 PARAMS = {
     "n_estimators": 400, 
-    "learning_rate:": 0.05, 
+    "learning_rate": 0.05, 
     "num_leaves": 31, 
     "min_child_samples": 50,
     "subsample": 0.8, 
