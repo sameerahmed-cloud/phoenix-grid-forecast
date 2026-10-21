@@ -59,9 +59,9 @@ def add_calendar_features(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def build() -> pd.DataFrame:
-    demand = pd.read_parquet(DEMAND)
-    weather = add_weather_features(pd.read_parquet(WEATHER))
+def build_features(demand: pd.DataFrame, weather: pd.DataFrame) -> pd.DataFrame:
+    """The training table from cleaned demand and raw weather. It reads no files, so other code can reuse it."""
+    weather = add_weather_features(weather)
     df = demand.merge(weather, on="period", how="left")
     df = pd.concat([add_demand_lags(g) for _, g in df.groupby("respondent")], ignore_index=True)
     df = add_calendar_features(df)
@@ -70,6 +70,9 @@ def build() -> pd.DataFrame:
     keep = df["demand_mw"].notna() & df["lag_24"].notna() & df["lag_168"].notna()
     return df.loc[keep, ["period", "respondent", "demand_mw", "was_repaired"] + FEATURES]
 
+
+def build() -> pd.DataFrame:
+    return build_features(pd.read_parquet(DEMAND), pd.read_parquet(WEATHER))
 
 def main() -> None:
     out = build()
