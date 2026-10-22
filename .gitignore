@@ -16,3 +16,5 @@ logs/
 reports/
 mlruns/
 mlflow.db
+
+retrain_report.md
