@@ -144,10 +144,13 @@ def to_markdown(results: dict, now) -> str:
     for utility, r in results.items():
         label = {"promote": f"CANDIDATE READY ({r['candidate_version']})",
                  "keep": "KEEP THE CHAMPION", "skipped": "SKIPPED"}[r["verdict"]]
+        if r["new_data_days"] > 0:
+            overlap = f"with {r['new_data_days']:.1f} days of data the champion never saw"
+        else:
+            overlap = "and the champion's training already covers part of it"
         lines += [f"### {utility}: {label}", "",
-                  (f"Champion {r['champion_version']}. Holdout {r['holdout_start']:%Y-%m-%d} to "
-                   f"{r['holdout_end']:%Y-%m-%d}, with {r['new_data_days']:.1f} days of data "
-                   "the champion never saw."), ""]
+                    (f"Champion {r['champion_version']}. Holdout {r['holdout_start']:%Y-%m-%d} to "
+                    f"{r['holdout_end']:%Y-%m-%d}, {overlap}."), ""]
         if r["table"] is not None:
             lines += ["| Model | Hours | MAPE % | MAE MW | Peak MAPE % |", "|---|---|---|---|---|"]
             lines += [f"| {t.model} | {t.hours} | {t.MAPE_pct:.2f} | {t.MAE_MW:.0f} | "

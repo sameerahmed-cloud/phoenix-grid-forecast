@@ -91,12 +91,12 @@ def test_the_challenger_never_trains_on_the_holdout():
     assert seen[0] < holdout_start_t
 
 
-def registry_fakes(monkeypatch, champion_level=5000.0, with_champion=True):
+def registry_fakes(monkeypatch, champion_level=5000.0, with_champion=True, trained_through="2026-03-01"):
     """Replace the registry functions with recorders, so no database is needed."""
     calls = {"added": [], "logged": []}
     champion = io.BytesIO()
     joblib.dump(MeanModel(champion_level), champion)
-    row = {"version": "v1", "trained_through_utc": T("2026-03-01"), "model_file": champion.getvalue()}
+    row = {"version": "v1", "trained_through_utc": T(trained_through), "model_file": champion.getvalue()}
     monkeypatch.setattr(r, "get_model", lambda conn, utility: row if with_champion else None)
     monkeypatch.setattr(r, "versions_of", lambda conn, utility: ["v1"])
     monkeypatch.setattr(r, "add_model", lambda *args: calls["added"].append(args))
@@ -149,6 +149,14 @@ def test_the_report_names_each_verdict_and_gives_the_promote_command(monkeypatch
     skipped = r.to_markdown(r.run(object(), both_utilities(), mean_trainer, FEATS, min_new_days=40,
                                   dry_run=True), T("2026-05-01 09:00"))
     assert "### SRP: SKIPPED" in skipped and "promote --utility" not in skipped
+
+
+def test_the_report_never_prints_a_negative_number_of_days(monkeypatch):
+    registry_fakes(monkeypatch, trained_through="2026-04-20")  # the champion's cutoff is inside the holdout
+    results = r.run(object(), both_utilities(), mean_trainer, FEATS, dry_run=True)
+    report = r.to_markdown(results, T("2026-05-01 09:00"))
+    assert "already covers part of it" in report and "never saw" not in report and "-" not in "".join(
+        line for line in report.splitlines() if "days of data" in line)
 
 
 def test_the_candidate_list_is_empty_when_nobody_won(monkeypatch):
