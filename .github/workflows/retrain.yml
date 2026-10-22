@@ -1,0 +1,37 @@
+name: Retrain check
+
+on:
+  schedule:
+    - cron: "0 9 1 * *"   # the 1st of each month at 09:00 UTC, which is 2:00 AM in Phoenix
+  workflow_dispatch:       # the manual button: use it whenever the health check worries you
+
+permissions:
+  contents: read
+  issues: write            # lets the job open an issue when a candidate model wins
+
+jobs:
+  retrain:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: requirements-api.txt
+      - run: pip install -r requirements-api.txt
+      - name: Bring the training table up to date
+        run: python -m src.retraining.refresh_training_data
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+      - name: Train a challenger and compare it with the champion
+        id: retrain
+        run: python -m src.retraining.retrain
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: Open an issue if a candidate model is ready
+        if: steps.retrain.outputs.candidates != ''
+        run: gh issue create --title "Candidate model ready for review" --body-file retrain_report.md
+        env:
+          GH_TOKEN: ${{ github.token }}
