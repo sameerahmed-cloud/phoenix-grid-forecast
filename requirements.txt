@@ -8,3 +8,4 @@ pytest
 ruff
 holidays
 httpx
+botocore[crt]
