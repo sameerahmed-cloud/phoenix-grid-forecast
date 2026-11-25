@@ -1,0 +1,25 @@
+﻿respondent  month  hours  model_mape  naive_mape  model_wins
+      AZPS      1   2961        4.03        5.06        True
+      AZPS      2   2712        5.08        6.07        True
+      AZPS      3   2964        4.64        5.91        True
+      AZPS      4   2880        3.99        6.13        True
+      AZPS      5   2760        4.27        6.08        True
+      AZPS      6   2736        4.72        5.63        True
+      AZPS      7   2969        4.78        5.12        True
+      AZPS      8   2914        5.28        5.69        True
+      AZPS      9   2856        5.93        6.77        True
+      AZPS     10   2394        4.56        5.56        True
+      AZPS     11   2160        4.22        3.93       False
+      AZPS     12   2239        4.88        4.27       False
+       SRP      1   2618        3.88        4.36        True
+       SRP      2   2702        2.99        4.24        True
+       SRP      3   2772        3.79        5.14        True
+       SRP      4   2832        5.06        6.68        True
+       SRP      5   2895        6.54        8.63        True
+       SRP      6   2781        4.80        6.71        True
+       SRP      7   2928        4.74        6.05        True
+       SRP      8   2976        5.91        7.06        True
+       SRP      9   2880        6.47        8.41        True
+       SRP     10   2370        5.15        6.50        True
+       SRP     11   2160        3.26        3.73        True
+       SRP     12   2232        3.23        3.71        True
